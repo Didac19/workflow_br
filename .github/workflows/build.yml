@@ -1,4 +1,4 @@
-name: 'publish'
+name: publish
 
 on:
   push:
@@ -9,42 +9,45 @@ jobs:
   publish-tauri:
     permissions:
       contents: write
+
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'windows-latest'
-            args: ''
-          # You can add ubuntu-22.04 or macos-latest here if you want to build for those platforms too!
+          - platform: windows-latest
+            args: ""
 
     runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: setup node
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: npm
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install dependencies
-        run: npm install
+      - name: Install frontend dependencies
+        run: npm ci
 
-      - name: build tauri app
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri App
         run: npm run tauri build
 
-      # 👇 Nuevo paso para subir el .exe como Artifact
-      - name: Upload raw exe
-        uses: actions/upload-artifact@v3
+      - name: Upload Tauri Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: tauri-exe
-          path: src-tauri/target/release/*.exe
-
-      # 👇 Opcional: subir también los instaladores como Artifact
-      - name: Upload installers
-        uses: actions/upload-artifact@v3
-        with:
-          name: tauri-installers
-          path: src-tauri/target/release/bundle/msi/*.msi
+          tagName: app-v__VERSION__
+          releaseName: App v__VERSION__
+          releaseBody: See the assets to download this version and install.
+          releaseDraft: false
+          prerelease: false
