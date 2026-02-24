@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
+import dagre from 'dagre';
 import {
     ReactFlow,
     MiniMap,
@@ -35,6 +36,41 @@ type BranchNodeObject = {
     data: { label: string; isMain: boolean };
 };
 
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+const nodeWidth = 300;
+const nodeHeight = 100;
+
+const getLayoutedElements = (nodes: any[], edges: any[], direction = 'LR') => {
+    dagreGraph.setGraph({ rankdir: direction, ranksep: 100, nodesep: 80 });
+
+    nodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    });
+
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = nodes.map((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        const newNode = {
+            ...node,
+            position: {
+                x: nodeWithPosition.x - nodeWidth / 2,
+                y: nodeWithPosition.y - nodeHeight / 2,
+            },
+        };
+
+        return newNode;
+    });
+
+    return { nodes: layoutedNodes, edges };
+};
+
 const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<BranchNodeObject>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -64,24 +100,24 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
         try {
             const lines = await getWorkflowLines(selectedProduct.id);
 
-            // Create nodes
-            const newNodes: BranchNodeObject[] = lines.map((line: SuggestedAction, index: number) => ({
+            // First pass: create all labels and data without final position
+            const initialNodes: any[] = lines.map((line: SuggestedAction, index: number) => ({
                 id: line.id.toString(),
                 type: 'branch',
-                position: { x: 100 + (index % 3) * 350, y: 100 + Math.floor(index / 3) * 200 },
+                position: { x: 0, y: 0 },
                 data: {
                     label: line.name,
                     isMain: index === 0,
-                    raw: line // Store full object for editing
+                    raw: line
                 },
             }));
 
-            // Create edges from related_line_ids
-            const newEdges: Edge[] = [];
+            // Create edges
+            const initialEdges: Edge[] = [];
             lines.forEach((line: SuggestedAction) => {
                 if (line.related_line_ids && Array.isArray(line.related_line_ids)) {
                     line.related_line_ids.forEach((targetId: number) => {
-                        newEdges.push({
+                        initialEdges.push({
                             id: `e${line.id}-${targetId}`,
                             source: line.id.toString(),
                             target: targetId.toString(),
@@ -95,8 +131,14 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
                 }
             });
 
-            setNodes(newNodes);
-            setEdges(newEdges);
+            // Apply layout
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+                initialNodes,
+                initialEdges
+            );
+
+            setNodes(layoutedNodes);
+            setEdges(layoutedEdges);
         } catch (err) {
             console.error('Fetch workflow lines failed:', err);
         } finally {
