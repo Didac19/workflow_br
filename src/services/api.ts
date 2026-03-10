@@ -107,7 +107,30 @@ export interface SuggestedAction {
     require_evidence?: boolean;
     state?: 'draft' | 'in_progress' | 'done' | 'cancelled';
     stage_id?: [number, string] | number | false;
+    estimated_hours?: number;
 }
+
+export const timeStringToFloat = (time: string | number): number => {
+    if (typeof time === 'number') return time;
+    const trimmed = time.trim();
+    if (!trimmed) return 0;
+
+    const parts = trimmed.split(':');
+    if (parts.length >= 2) {
+        const hours = parseInt(parts[0], 10) || 0;
+        const minutes = parseInt(parts[1], 10) || 0;
+        return (isNaN(hours) ? 0 : hours) + (isNaN(minutes) ? 0 : minutes) / 60;
+    } else {
+        const hours = parseFloat(trimmed) || 0;
+        return isNaN(hours) ? 0 : hours;
+    }
+};
+
+export const floatToTimeString = (hours: number): string => {
+    const h = Math.floor(hours || 0);
+    const m = Math.round(((hours || 0) - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
 
 export interface OrderState {
     id: number;

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps, useNodeId, useEdges } from '@xyflow/react';
-import { GitBranch, GitMerge } from 'lucide-react';
+import { GitBranch, GitMerge, Clock } from 'lucide-react';
+import { floatToTimeString } from '../../services/api';
 
 export interface BranchNodeData {
     label: string;
@@ -51,8 +52,14 @@ const BranchNode = ({ data }: NodeProps<BranchNode>) => {
                         </div>
                     )}
                     {data.raw?.stage_id && (
-                        <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold">
+                        <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold mr-2">
                             {Array.isArray(data.raw.stage_id) ? data.raw.stage_id[1] : data.raw.stage_id}
+                        </div>
+                    )}
+                    {data.raw?.estimated_hours > 0 && (
+                        <div className="mt-2 inline-flex items-center gap-1 text-[10px] text-gray-400 bg-black/10 px-2 py-0.5 rounded-full border border-white/5">
+                            <Clock size={10} className="text-gray-500" />
+                            <span>{floatToTimeString(data.raw.estimated_hours)}</span>
                         </div>
                     )}
 

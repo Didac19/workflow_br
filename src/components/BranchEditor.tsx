@@ -17,8 +17,8 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import BranchNode from './nodes/BranchNode';
-import { Product, getWorkflowLines, SuggestedAction, createWorkflowLine, addWorkflowConnection, getOrderStates, updateWorkflowLine, OrderState, removeWorkflowConnection, deleteWorkflowLine } from '../services/api';
-import { Package, RefreshCw, Plus, X, Settings2, Save, CheckCircle2, Zap, AlertCircle, Trash2 } from 'lucide-react';
+import { Product, getWorkflowLines, SuggestedAction, createWorkflowLine, addWorkflowConnection, getOrderStates, updateWorkflowLine, OrderState, removeWorkflowConnection, deleteWorkflowLine, timeStringToFloat, floatToTimeString } from '../services/api';
+import { Package, RefreshCw, Plus, X, Settings2, Save, CheckCircle2, Zap, AlertCircle, Trash2, Clock } from 'lucide-react';
 import { Edge, Node } from '@xyflow/react';
 
 interface BranchEditorProps {
@@ -89,8 +89,19 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
         is_automatic: false,
         completes_order_line: false,
         require_evidence: false,
-        stage_id: false
+        stage_id: false,
+        estimated_hours: 0
     });
+
+    const [timeInput, setTimeInput] = useState('00:00');
+
+    useEffect(() => {
+        if (selectedAction) {
+            setTimeInput(floatToTimeString(selectedAction.estimated_hours || 0));
+        } else if (isCreating) {
+            setTimeInput(floatToTimeString(newBranchData.estimated_hours || 0));
+        }
+    }, [selectedAction?.id, isCreating]);
 
     const connectingNodeId = useRef<string | null>(null);
     const connectingToNode = useRef<boolean>(false);
@@ -199,7 +210,8 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
                     is_automatic: false,
                     completes_order_line: false,
                     require_evidence: false,
-                    stage_id: false
+                    stage_id: false,
+                    estimated_hours: 0
                 });
                 setIsCreating(true);
                 setSelectedAction(null);
@@ -371,7 +383,8 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
             is_automatic: false,
             completes_order_line: false,
             require_evidence: false,
-            stage_id: false
+            stage_id: false,
+            estimated_hours: 0
         });
         setIsCreating(true);
         setSelectedAction(null);
@@ -577,7 +590,36 @@ const BranchEditor = ({ selectedProduct }: BranchEditorProps) => {
                                 </div>
                             </div>
 
-                            {/* Configuration Flags */}
+                            <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Horas estimadas</label>
+                                <div className="relative">
+                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                                    <input
+                                        type="text"
+                                        value={timeInput}
+                                        onChange={(e) => setTimeInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                (e.target as HTMLInputElement).blur();
+                                            }
+                                        }}
+                                        onBlur={(e) => {
+                                            const num = timeStringToFloat(e.target.value);
+                                            const formatted = floatToTimeString(num);
+                                            setTimeInput(formatted);
+                                            if (isCreating) {
+                                                setNewBranchData(prev => ({ ...prev, estimated_hours: num }));
+                                            } else if (selectedAction) {
+                                                handleUpdateAction({ estimated_hours: num });
+                                            }
+                                        }}
+                                        className="w-full bg-black/40 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-primary/50 outline-none transition-all font-mono"
+                                        placeholder="00:00"
+                                    />
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-800" />
                             <div className="space-y-3">
                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Configuraciones de Ejecución</label>
 

@@ -24,7 +24,7 @@ const ProductSelector = ({ onSelect, selectedProduct }: ProductSelectorProps) =>
     }, []);
 
     return (
-        <div className="relative inline-block text-left w-64">
+        <div className="relative inline-block text-left w-64"> 
             <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
                 <ListFilter size={12} />
                 Product Context
